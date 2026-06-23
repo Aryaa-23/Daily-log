@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Daily Log</title>
+<style>
+  :root{
+    --ink:#1A1A18;
+    --paper:#F7F5F0;
+    --paper-dim:#ECE9E1;
+    --line:#DAD5C9;
+    --amber:#C2752F;
+    --amber-dim:#EBD6BE;
+    --sage:#7A8B6F;
+    --sage-dim:#DEE4D8;
+    --miss:#B5443A;
+    --muted:#8C887E;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--paper); color:var(--ink); height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    display:flex; flex-direction:column;
+    min-height:100vh;
+    max-width:480px;
+    margin:0 auto;
+    position:relative;
+  }
+  .num{
+    font-family:'Arial Narrow',"Helvetica Neue Condensed",sans-serif;
+    font-weight:700;
+    letter-spacing:0.01em;
+  }
+
+  /* HEADER / TALLY */
+  header{
+    padding:20px 20px 16px;
+    border-bottom:1px solid var(--line);
+    background:var(--paper);
+    position:sticky; top:0; z-index:5;
+  }
+  .date-row{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-bottom:14px;
+  }
+  .date-row .day{font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em;}
+  .date-row .reset{font-size:12px; color:var(--muted); background:none; border:none; text-decoration:underline; padding:4px;}
+  .tally{display:flex; align-items:flex-end; gap:18px;}
+  .tally-main .num{font-size:52px; line-height:1; color:var(--ink);}
+  .tally-main .label{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-top:2px;}
+  .tally-split{display:flex; gap:14px; padding-bottom:8px;}
+  .tally-split div{text-align:left;}
+  .tally-split .num{font-size:20px; color:var(--sage);}
+  .tally-split .num.miss{color:var(--miss);}
+  .tally-split .label{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em;}
+
+  main{flex:1; overflow-y:auto; padding-bottom:140px;}
+
+  section{padding:18px 20px 6px;}
+  section h2{
+    font-size:13px; text-transform:uppercase; letter-spacing:0.08em;
+    color:var(--muted); margin:0 0 12px; font-weight:600;
+  }
+
+  /* HABITS */
+  .habit-list{display:flex; flex-direction:column; gap:8px;}
+  .habit{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 16px; background:var(--paper-dim); border-radius:12px;
+    border:1px solid transparent;
+  }
+  .habit span{font-size:15px;}
+  .habit-toggle{
+    display:flex; gap:6px;
+  }
+  .habit-toggle button{
+    width:38px; height:38px; border-radius:9px; border:1px solid var(--line);
+    background:var(--paper); font-size:16px; color:var(--muted);
+  }
+  .habit-toggle button.done{background:var(--sage); border-color:var(--sage); color:var(--paper);}
+  .habit-toggle button.missed{background:var(--miss); border-color:var(--miss); color:var(--paper);}
+  .habit.done{background:var(--sage-dim);}
+  .habit.missed{background:#F1DEDB;}
+
+  .habit-edit{display:flex; gap:8px; padding:4px 20px 14px;}
+  .habit-edit input{
+    flex:1; padding:10px 12px; border:1px solid var(--line); border-radius:10px;
+    background:var(--paper); font-size:14px; color:var(--ink);
+  }
+  .habit-edit button{
+    padding:10px 16px; border-radius:10px; border:none; background:var(--ink); color:var(--paper);
+    font-size:14px; font-weight:600;
+  }
+
+  /* LOG LIST */
+  .log-list{display:flex; flex-direction:column; gap:6px;}
+  .log-entry{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 14px; background:var(--paper-dim); border-radius:10px;
+    font-size:14px;
+  }
+  .log-entry .dot{width:9px; height:9px; border-radius:50%; flex-shrink:0;}
+  .log-entry .t{color:var(--muted); font-size:12px; margin-left:auto; flex-shrink:0;}
+  .log-entry button.del{
+    border:none; background:none; color:var(--muted); font-size:16px; padding:2px 4px; line-height:1;
+  }
+  .empty-state{
+    font-size:13px; color:var(--muted); padding:10px 2px; line-height:1.5;
+  }
+
+  /* BOTTOM TAP BAR */
+  .tap-bar{
+    position:fixed; bottom:0; left:0; right:0;
+    max-width:480px; margin:0 auto;
+    background:var(--paper);
+    border-top:1px solid var(--line);
+    padding:14px 16px calc(14px + env(safe-area-inset-bottom));
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;
+    box-shadow:0 -6px 20px rgba(0,0,0,0.04);
+  }
+  .tap-bar button{
+    border:1px solid var(--line);
+    background:var(--paper-dim);
+    border-radius:14px;
+    padding:14px 6px;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    font-size:12px; font-weight:600; color:var(--ink);
+    transition:transform .08s ease;
+  }
+  .tap-bar button:active{transform:scale(0.94); background:var(--amber-dim); border-color:var(--amber);}
+  .tap-bar button .ic{font-size:20px;}
+  .tap-bar.expanded{
+    grid-template-columns:1fr 1fr 1fr 1fr 1fr;
+  }
+
+  .more-row{
+    position:fixed; bottom:0; left:0; right:0; max-width:480px; margin:0 auto;
+    transform:translateY(100%); transition:transform .18s ease;
+    background:var(--paper); border-top:1px solid var(--line);
+    padding:10px 16px; display:grid; grid-template-columns:1fr 1fr; gap:8px;
+    z-index:3;
+  }
+  .more-row.open{transform:translateY(-86px);}
+
+  .custom-cat-row{
+    padding:0 20px 16px; display:flex; gap:8px;
+  }
+  .custom-cat-row input{
+    flex:1; padding:10px 12px; border:1px solid var(--line); border-radius:10px;
+    background:var(--paper-dim); font-size:14px;
+  }
+  .custom-cat-row button{
+    padding:10px 14px; border-radius:10px; border:none; background:var(--ink); color:var(--paper); font-size:13px;
+  }
+
+  .toast{
+    position:fixed; top:14px; left:50%; transform:translateX(-50%) translateY(-30px);
+    background:var(--ink); color:var(--paper); padding:9px 18px; border-radius:30px;
+    font-size:13px; opacity:0; transition:all .25s ease; z-index:10; pointer-events:none;
+    white-space:nowrap;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  ::-webkit-scrollbar{display:none;}
+
+  .confirm-overlay{
+    position:fixed; inset:0; background:rgba(26,26,24,0.45);
+    display:none; align-items:center; justify-content:center;
+    z-index:50; padding:24px;
+  }
+  .confirm-overlay.show{display:flex;}
+  .confirm-box{
+    background:var(--paper); border-radius:16px; padding:22px 20px;
+    max-width:340px; width:100%; box-shadow:0 12px 30px rgba(0,0,0,0.2);
+  }
+  .confirm-box p{font-size:15px; line-height:1.5; margin:0 0 18px; color:var(--ink);}
+  .confirm-actions{display:flex; gap:10px; justify-content:flex-end;}
+  .confirm-actions button{
+    padding:10px 18px; border-radius:10px; border:1px solid var(--line);
+    background:var(--paper-dim); font-size:14px; font-weight:600; color:var(--ink);
+  }
+  .confirm-actions #confirmOk{background:var(--miss); border-color:var(--miss); color:var(--paper);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="date-row">
+    <span class="day" id="dayLabel">—</span>
+    <button class="reset" id="resetBtn">Reset day</button>
+  </div>
+  <div class="tally">
+    <div class="tally-main">
+      <div class="num" id="tallyCount">0</div>
+      <div class="label">logged today</div>
+    </div>
+    <div class="tally-split">
+      <div><div class="num" id="habitsDone">0/0</div><div class="label">habits done</div></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section>
+    <h2>Habits</h2>
+    <div class="habit-list" id="habitList"></div>
+    <div class="habit-edit">
+      <input type="text" id="newHabitInput" placeholder="Add a habit, e.g. Read 20 min" maxlength="40">
+      <button id="addHabitBtn">Add</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Today's log</h2>
+    <div class="log-list" id="logList"></div>
+    <div class="empty-state" id="emptyState">Nothing logged yet — tap a category below.</div>
+  </section>
+</main>
+
+<div class="more-row" id="moreRow"></div>
+
+<div class="tap-bar" id="tapBar"></div>
+
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <p id="confirmMsg"></p>
+    <div class="confirm-actions">
+      <button id="confirmCancel">Cancel</button>
+      <button id="confirmOk">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const DEFAULT_CATEGORIES = [
+    {id:'work', label:'Work', icon:'💼', color:'#C2752F'},
+    {id:'study', label:'Study', icon:'📘', color:'#5B7FA6'},
+    {id:'exercise', label:'Exercise', icon:'🏃', color:'#7A8B6F'},
+    {id:'admin', label:'Admin', icon:'🗂️', color:'#8C887E'},
+    {id:'rest', label:'Rest', icon:'☕', color:'#B08968'},
+  ];
+  const DEFAULT_HABITS = ['Drink water', 'Move for 20 min', 'No phone before bed'];
+
+  function todayStr(){
+    const d = new Date();
+    return d.toISOString().slice(0,10);
+  }
+
+  // In-memory only. No localStorage — some preview/sandbox contexts block
+  // storage APIs outright, and a thrown error here would stop this whole
+  // script before any buttons get wired up. Data lives only as long as
+  // this page stays open; see the note in chat about real persistence.
+  let persistAvailable = false;
+
+  let state = {
+    date: todayStr(),
+    categories: DEFAULT_CATEGORIES,
+    habits: DEFAULT_HABITS.map((name,i)=>({id:'h'+i+'_'+Date.now(), name, status:'pending'})),
+    entries: []
+  };
+
+  function save(){
+    // No-op by design (see note above). Kept so calls elsewhere don't need to change.
+  }
+
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(()=>t.classList.remove('show'), 1400);
+  }
+
+  // Replaces native confirm() — sandboxed previews (including Claude's
+  // artifact iframe) commonly block or no-op window.confirm/alert/prompt,
+  // so a button can fire its click handler and still appear to do nothing.
+  function appConfirm(message, onConfirm){
+    const overlay = document.getElementById('confirmOverlay');
+    document.getElementById('confirmMsg').textContent = message;
+    overlay.classList.add('show');
+    const okBtn = document.getElementById('confirmOk');
+    const cancelBtn = document.getElementById('confirmCancel');
+    function cleanup(){
+      overlay.classList.remove('show');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+    }
+    function onOk(){ cleanup(); onConfirm(); }
+    function onCancel(){ cleanup(); }
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+  }
+
+  // ---------- RENDER ----------
+  function render(){
+    renderHeader();
+    renderHabits();
+    renderLog();
+    renderTapBar();
+  }
+
+  function renderHeader(){
+    const d = new Date(state.date + 'T00:00:00');
+    const opts = {weekday:'long', month:'short', day:'numeric'};
+    document.getElementById('dayLabel').textContent = d.toLocaleDateString(undefined, opts);
+    document.getElementById('tallyCount').textContent = state.entries.length;
+    const done = state.habits.filter(h=>h.status==='done').length;
+    document.getElementById('habitsDone').textContent = done + '/' + state.habits.length;
+  }
+
+  function renderHabits(){
+    const list = document.getElementById('habitList');
+    list.innerHTML = '';
+    if(state.habits.length === 0){
+      list.innerHTML = '<div class="empty-state">No habits yet — add one below.</div>';
+      return;
+    }
+    state.habits.forEach(h=>{
+      const row = document.createElement('div');
+      row.className = 'habit' + (h.status==='done' ? ' done' : h.status==='missed' ? ' missed' : '');
+      row.innerHTML = `
+        <span>${escapeHtml(h.name)}</span>
+        <div class="habit-toggle">
+          <button data-action="done" aria-label="Mark done">${h.status==='done' ? '✓' : '✓'}</button>
+          <button data-action="missed" aria-label="Mark missed">${h.status==='missed' ? '✕' : '✕'}</button>
+        </div>`;
+      const [doneBtn, missBtn] = row.querySelectorAll('button');
+      doneBtn.classList.toggle('done', h.status==='done');
+      missBtn.classList.toggle('missed', h.status==='missed');
+      doneBtn.addEventListener('click', ()=>{
+        h.status = (h.status==='done') ? 'pending' : 'done';
+        save(); render();
+      });
+      missBtn.addEventListener('click', ()=>{
+        h.status = (h.status==='missed') ? 'pending' : 'missed';
+        save(); render();
+      });
+      row.addEventListener('contextmenu', (e)=>{ e.preventDefault(); removeHabit(h.id); });
+      let pressTimer;
+      row.addEventListener('touchstart', ()=>{ pressTimer = setTimeout(()=>removeHabit(h.id), 600); });
+      row.addEventListener('touchend', ()=>clearTimeout(pressTimer));
+      list.appendChild(row);
+    });
+  }
+
+  function removeHabit(id){
+    appConfirm('Remove this habit?', ()=>{
+      state.habits = state.habits.filter(h=>h.id!==id);
+      save(); render();
+    });
+  }
+
+  function renderLog(){
+    const list = document.getElementById('logList');
+    const empty = document.getElementById('emptyState');
+    list.innerHTML = '';
+    if(state.entries.length === 0){
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    state.entries.slice().reverse().forEach(entry=>{
+      const cat = state.categories.find(c=>c.id===entry.catId) || {label:entry.catId, color:'#999', icon:'•'};
+      const row = document.createElement('div');
+      row.className = 'log-entry';
+      const time = new Date(entry.ts).toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'});
+      row.innerHTML = `
+        <span class="dot" style="background:${cat.color}"></span>
+        <span>${cat.icon} ${escapeHtml(cat.label)}</span>
+        <span class="t">${time}</span>
+        <button class="del" aria-label="Delete entry">×</button>`;
+      row.querySelector('.del').addEventListener('click', ()=>{
+        state.entries = state.entries.filter(e=>e.id!==entry.id);
+        save(); render();
+      });
+      list.appendChild(row);
+    });
+  }
+
+  let moreOpen = false;
+  function renderTapBar(){
+    const bar = document.getElementById('tapBar');
+    const moreRow = document.getElementById('moreRow');
+    bar.innerHTML = '';
+    const primary = state.categories.slice(0,5);
+    primary.forEach(cat=>{
+      const btn = document.createElement('button');
+      btn.innerHTML = `<span class="ic">${cat.icon}</span><span>${escapeHtml(cat.label)}</span>`;
+      btn.addEventListener('click', ()=>logEntry(cat.id));
+      bar.appendChild(btn);
+    });
+
+    moreRow.innerHTML = '';
+    const customRow = document.createElement('div');
+    customRow.className = 'custom-cat-row';
+    customRow.innerHTML = `
+      <input type="text" id="newCatInput" placeholder="New category name" maxlength="20">
+      <button id="addCatBtn">Add</button>`;
+    moreRow.appendChild(customRow);
+    moreRow.querySelector('#addCatBtn').addEventListener('click', addCategory);
+    moreRow.querySelector('#newCatInput').addEventListener('keydown', (e)=>{
+      if(e.key==='Enter') addCategory();
+    });
+  }
+
+  function addCategory(){
+    const input = document.getElementById('newCatInput');
+    const name = input.value.trim();
+    if(!name) return;
+    const palette = ['#C2752F','#5B7FA6','#7A8B6F','#8C887E','#B08968','#9C6B9E','#4F8A8B'];
+    const color = palette[state.categories.length % palette.length];
+    state.categories.push({id: 'c'+Date.now(), label:name, icon:'•', color});
+    input.value = '';
+    save(); render();
+    showToast('Category added');
+  }
+
+  function logEntry(catId){
+    state.entries.push({id:'e'+Date.now(), catId, ts: Date.now()});
+    save(); render();
+    const cat = state.categories.find(c=>c.id===catId);
+    showToast('Logged ' + (cat ? cat.label : ''));
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  document.getElementById('addHabitBtn').addEventListener('click', ()=>{
+    const input = document.getElementById('newHabitInput');
+    const name = input.value.trim();
+    if(!name) return;
+    state.habits.push({id:'h'+Date.now(), name, status:'pending'});
+    input.value = '';
+    save(); render();
+  });
+  document.getElementById('newHabitInput').addEventListener('keydown', (e)=>{
+    if(e.key==='Enter') document.getElementById('addHabitBtn').click();
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    appConfirm("Reset today's log and habit checks? Categories and habit list stay.", ()=>{
+      state.entries = [];
+      state.habits = state.habits.map(h=>({...h, status:'pending'}));
+      save(); render();
+    });
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>
